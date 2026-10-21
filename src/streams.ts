@@ -4,6 +4,7 @@ import { homedir } from "node:os";
 import { join } from "node:path";
 import type { Config } from "./config.js";
 import * as git from "./git.js";
+import { queueLines } from "./magpie.js";
 import { expand, tilde } from "./paths.js";
 import type { Session } from "./sessions.js";
 
@@ -96,6 +97,7 @@ function gitFacts(cwd: string): string[] {
     out.push("- Commits on this branch (newest first):");
     for (const l of log) out.push(`  - ${l}`);
   }
+  out.push(...queueLines(cwd, branch || undefined));
   return out;
 }
 

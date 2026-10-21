@@ -154,9 +154,13 @@ and won't.
 
 starling is an independent project, not made or endorsed by Anthropic.
 
-## Roadmap
+## Works with magpie
 
-- an inbox: queue a task for any stream from anywhere (from [magpie](https://github.com/akshaykrishh/magpie))
+[magpie](https://github.com/akshaykrishh/magpie) collects the work you want agents to do;
+starling keeps the sessions doing it running safely. Each works alone. With both installed,
+there is nothing to set up: new sessions start with what magpie has queued for their repo and
+branch, `starling ls` gains a QUEUE column and shows the item each agent has taken, and
+handoffs list the open items. How they talk: [docs/integration.md](docs/integration.md).
 
 ## Development
 

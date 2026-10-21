@@ -57,3 +57,7 @@ export const isAncestor = (repo: string, commit: string, of: string) =>
 export const lastCommitAt = (wt: string) => Number(git(wt, ["log", "-1", "--format=%ct"]) ?? 0) * 1000;
 export const removeWorktree = (repo: string, path: string) => git(repo, ["worktree", "remove", path]) !== undefined;
 export const pruneWorktrees = (repo: string) => git(repo, ["worktree", "prune"]) !== undefined;
+
+export function currentBranch(cwd: string): string | undefined {
+  return git(cwd, ["branch", "--show-current"]) || undefined;
+}

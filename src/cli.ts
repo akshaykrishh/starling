@@ -7,6 +7,7 @@ import { accountEmail, configPath, DEFAULT_LINKS, detectProfiles, loadConfig, sa
 import { check, fix, HINT, isFixable, type Finding } from "./doctor.js";
 import * as git from "./git.js";
 import { expand, tilde } from "./paths.js";
+import { leasesByClaudePid, open, queueFor, queueLines } from "./magpie.js";
 import { lintStore, memoryStores } from "./memory.js";
 import { ago, listSessions, record, staleSessionRecords, type HookInput, type Session } from "./sessions.js";
 import { attach, getStream, handoffFile, listStreams, saveStream, streamFor, validName, writeHandoff, type Stream } from "./streams.js";
@@ -19,8 +20,9 @@ const HELP = `starling: keep many Claude Code sessions, accounts and worktrees m
   starling profile add <name> [--dir]   create a profile that shares everything with the others
   starling run <profile> [-- args]      start claude as that profile
 
-  starling ls [--all] [--hours N]       every session on every profile; the ones waiting on you first
-  starling streams                      open streams: a piece of work that outlives sessions and accounts
+  starling ls [--all] [--hours N] [--json]
+                                        every session on every profile; the ones waiting on you first
+  starling streams [--json]             open streams: a piece of work that outlives sessions and accounts
   starling handoff <stream> [--notes-file <path|->]
                                         write the stream's handoff (notes + live git state); starts the stream
                                         in this folder if it is new
@@ -121,17 +123,26 @@ function ls(cfg: Config, args: string[]): void {
   const hours = Number(flag(args, "--hours") ?? 24);
   const all = listSessions(cfg, hours);
   const shown = args.includes("--all") ? all : all.filter((s) => s.state !== "ended");
+  if (args.includes("--json")) {
+    const sessions = shown.map(({ id, profile, cwd, branch, title, state, since, updated, pid, stream }) => ({ id, profile, cwd, branch, title, state, since, updated, pid, stream }));
+    return console.log(JSON.stringify({ schema: 1, sessions }));
+  }
   if (!shown.length) return console.log(`No sessions in the last ${hours}h.`);
-  const rows = shown.map((s) => [
+  // With magpie installed: how much is queued where each session works, and what it has taken.
+  const doing = leasesByClaudePid();
+  const queued = shown.map((s) => queueFor(s.cwd, s.branch));
+  const withQueue = queued.some((q) => q?.project);
+  const rows = shown.map((s, i) => [
     STATE_LABEL[s.state],
     ago(s.since),
     s.profile,
     tilde(s.cwd).split("/").slice(-1)[0] || tilde(s.cwd),
     s.branch ?? "",
     s.stream ?? "",
-    (s.title ?? "").slice(0, 50),
+    ...(withQueue ? [queued[i]?.project ? String(open(queued[i]).length) : ""] : []),
+    (s.pid && doing.has(s.pid) ? `▸ ${doing.get(s.pid)}` : (s.title ?? "")).slice(0, 50),
   ]);
-  const head = ["STATE", "FOR", "PROFILE", "FOLDER", "BRANCH", "STREAM", "TITLE"];
+  const head = ["STATE", "FOR", "PROFILE", "FOLDER", "BRANCH", "STREAM", ...(withQueue ? ["QUEUE"] : []), "TITLE"];
   const widths = head.map((h, i) => Math.min(32, Math.max(h.length, ...rows.map((r) => r[i].length))));
   const fmt = (r: string[]) => r.map((c, i) => (i === r.length - 1 ? c : c.slice(0, widths[i]).padEnd(widths[i]))).join("  ");
   console.log(fmt(head));
@@ -140,8 +151,12 @@ function ls(cfg: Config, args: string[]): void {
   if (waiting) console.log(`\n${waiting} waiting on you.`);
 }
 
-function streams(): void {
+function streams(args: string[]): void {
   const open = listStreams().filter((s) => s.status === "open");
+  if (args.includes("--json")) {
+    const streams = open.map(({ name, cwd, profile, status, created, updated }) => ({ name, cwd, profile, status, created, updated }));
+    return console.log(JSON.stringify({ schema: 1, streams }));
+  }
   if (!open.length) return console.log("No open streams. Start one with `starling handoff <name>` in the work's folder.");
   for (const s of open) {
     console.log(`${s.name.padEnd(24)} ${ago(s.updated).padStart(4)}  ${(s.profile ?? "").padEnd(12)} ${tilde(s.cwd)}  (${s.sessions.length} session(s))`);
@@ -184,6 +199,8 @@ function close(cfg: Config, args: string[]): void {
   const name = validName(args[0]);
   const s = getStream(name);
   if (!s) throw new Error(`No stream ${name}.`);
+  const left = open(queueFor(s.cwd, git.currentBranch(s.cwd)));
+  if (left.length) console.log(`magpie still has ${left.length} open item(s) for this stream's branch; finish or move them in magpie.`);
   s.status = "closed";
   s.updated = Date.now();
   saveStream(s);
@@ -223,6 +240,12 @@ function hook(event: string): void {
   if (named && stream && cfg) {
     try {
       console.log(`starling: this session continues the "${named}" stream. Its handoff:\n\n${readFileSync(handoffFile(cfg, named), "utf8")}`);
+    } catch {}
+  }
+  if (input.cwd) {
+    try {
+      const lines = queueLines(input.cwd, git.currentBranch(input.cwd));
+      if (lines.length) console.log(`\n${lines.join("\n")}\nTake one with magpie's queue_take tool when you start on it.`);
     } catch {}
   }
 }
@@ -334,7 +357,7 @@ function main(argv: string[]): number {
     case "ls":
       return ls(cfg, args), 0;
     case "streams":
-      return streams(), 0;
+      return streams(args), 0;
     case "handoff":
       return handoff(cfg, args), 0;
     case "resume":

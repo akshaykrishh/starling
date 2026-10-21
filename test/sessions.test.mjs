@@ -123,3 +123,13 @@ test("stream names are checked", () => {
   assert.equal(r.status, 1);
   assert.match(r.stderr, /stream name is letters/);
 });
+
+test("a hook without a transcript is credited to the profile in CLAUDE_CONFIG_DIR", () => {
+  const { home, run } = sandbox();
+  run(["init"]);
+  const input = JSON.stringify({ session_id: "s9", cwd: home, hook_event_name: "SessionStart" });
+  run(["hook", "SessionStart"], { input, env: { CLAUDE_CONFIG_DIR: join(home, ".claude-work") } });
+  run(["hook", "SessionStart"], { input: input.replace("s9", "s8"), env: { CLAUDE_CONFIG_DIR: join(home, ".claude-work") + "/" } });
+  const profiles = JSON.parse(run(["ls", "--json"]).stdout).sessions.map((s) => s.profile);
+  assert.deepEqual(profiles, ["work", "work"]);
+});

@@ -1,6 +1,6 @@
 {
   "name": "@akshaykrishh/starling",
-  "version": "0.3.1",
+  "version": "0.4.0",
   "description": "Keep many Claude Code sessions, accounts and worktrees moving as one flock: shared config that stays shared, memory that stays small, and a yard that cleans itself.",
   "type": "module",
   "bin": {

@@ -45,7 +45,8 @@ function readJson<T>(p: string): T | undefined {
 /** Which profile a transcript belongs to: the configured dir it lives under, else the dir's name. */
 export function profileOf(cfg: Config | undefined, transcript: string | undefined): string {
   const dir = process.env.CLAUDE_CONFIG_DIR ?? join(homedir(), ".claude");
-  const path = transcript ?? join(dir, "x");
+  // Without a transcript, the profile folder itself (the trailing / keeps the prefix match exact).
+  const path = transcript ?? dir.replace(/\/$/, "") + "/";
   for (const [name, d] of Object.entries(cfg?.profiles ?? {})) if (path.startsWith(expand(d) + "/")) return name;
   const root = path.split("/projects/")[0];
   const b = basename(root);
