@@ -80,3 +80,10 @@ test("near-duplicate memories and limits are reported", () => {
   assert.match(out, /overlap    deploy-one\.md: may cover the same ground as deploy-two\.md/);
   assert.match(out, /over-limit 33 files \(limit 30\)/);
 });
+
+test("CRLF headers parse, and ./ or ../ paths are not checked against the project root", () => {
+  const crlf = mem("build", "How the build runs", "Import from `./fixtures` and `../shared/x.ts`.").replace(/\n/g, "\r\n");
+  const r = sandbox({ "build.md": crlf })("memory", "lint");
+  assert.equal(r.status, 0, r.stdout);
+  assert.match(r.stdout, /Memory is clean/);
+});

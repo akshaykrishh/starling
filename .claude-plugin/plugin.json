@@ -1,6 +1,6 @@
 {
   "name": "starling",
-  "version": "0.4.0",
+  "version": "0.4.1",
   "description": "Run many Claude Code sessions in parallel worktrees safely: blocks git stash (shared across worktrees), destructive git and polling loops, and repairs shared config across accounts at session start.",
   "author": {
     "name": "Akshay Krishna"

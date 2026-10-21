@@ -43,7 +43,8 @@ interface Memory {
 }
 
 function parse(path: string): Memory {
-  const text = readFileSync(path, "utf8");
+  // Files written on Windows (or by tools that use CRLF) must parse the same way.
+  const text = readFileSync(path, "utf8").replace(/^\uFEFF/, "").replace(/\r\n/g, "\n");
   const m = /^---\n([\s\S]*?)\n---\n?([\s\S]*)$/.exec(text);
   const head = m?.[1] ?? "";
   const field = (k: string) => new RegExp(`^${k}:\\s*(.+)$`, "m").exec(head)?.[1].trim();
@@ -89,7 +90,8 @@ function rootFor(cfg: Config, key: string): string | undefined {
 function pathsIn(body: string, root: string | undefined): string[] {
   const out = new Set<string>();
   for (const [, span] of body.matchAll(/`([^`\s]+)`/g)) {
-    if (!span.includes("/") || span.includes("...") || /[?=*<>$|{}():@]/.test(span)) continue;
+    // ./x and ../x are relative to whichever file mentions them, not to the project root.
+    if (!span.includes("/") || span.includes("...") || span.startsWith("./") || span.startsWith("../") || /[?=*<>$|{}():@]/.test(span)) continue;
     if (span.startsWith("~/") || span.startsWith(homedir() + "/")) out.add(expand(span));
     else if (!isAbsolute(span) && root && existsSync(join(root, span.split("/")[0]))) out.add(join(root, span));
   }
