@@ -1,5 +1,7 @@
 # starling
 
+[![ci](https://github.com/akshaykrishh/starling/actions/workflows/ci.yml/badge.svg)](https://github.com/akshaykrishh/starling/actions/workflows/ci.yml) [![npm](https://img.shields.io/npm/v/@akshaykrishh/starling)](https://www.npmjs.com/package/@akshaykrishh/starling)
+
 **Keep many Claude Code sessions, accounts and worktrees moving as one flock.**
 
 <!-- TODO: 30-second GIF of `starling hygiene` → `starling gc` → `starling doctor --fix` on a demo repo -->
@@ -135,5 +137,8 @@ limits, and won't.
 npm install && npm test   # builds, then runs the end-to-end tests in a throwaway HOME
 npm run test:hooks        # guard regression cases
 ```
+
+Releases: bump `version` in `package.json` and `.claude-plugin/plugin.json`, commit, then
+`git tag v<version> && git push --tags`. GitHub Actions publishes to npm with provenance.
 
 MIT licensed.

@@ -1,0 +1,31 @@
+# Publishes to npm when a version tag (v1.2.3) is pushed. Uses npm trusted publishing: npm
+# trusts this workflow through GitHub's OIDC token, so no npm token is stored anywhere, and
+# the package gets a provenance statement linking it to this commit.
+name: release
+
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          # Trusted publishing needs npm 11.5.1 or later, which Node 24 ships with.
+          node-version: 24
+          registry-url: https://registry.npmjs.org
+      - name: Tag matches package.json and plugin.json
+        run: |
+          v="${GITHUB_REF_NAME#v}"
+          test "$(node -p 'require("./package.json").version')" = "$v"
+          test "$(node -p 'require("./.claude-plugin/plugin.json").version')" = "$v"
+      - run: npm ci
+      # prepublishOnly runs the unit and hook tests before anything is uploaded.
+      - run: npm publish
