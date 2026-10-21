@@ -1,7 +1,7 @@
 // End-to-end tests: each test gets a throwaway HOME with fake Claude profiles and real git repos.
 import assert from "node:assert/strict";
 import { execFileSync, spawnSync } from "node:child_process";
-import { existsSync, lstatSync, mkdirSync, mkdtempSync, readdirSync, readlinkSync, renameSync, symlinkSync, utimesSync, writeFileSync } from "node:fs";
+import { existsSync, lstatSync, mkdirSync, mkdtempSync, readdirSync, readlinkSync, renameSync, rmSync, symlinkSync, utimesSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { test } from "node:test";
@@ -136,4 +136,17 @@ test("the session-start hook never fails, even without a config", () => {
   const { run } = sandbox();
   const r = run("hook", "session-start");
   assert.equal(r.status, 0);
+});
+
+test("a chain of links is pointed straight at the shared copy", () => {
+  const { home, shared, run } = sandbox();
+  run("init");
+  run("doctor", "--fix");
+  // work -> default -> shared: Claude Code's one-hop atomic save would replace the middle link.
+  const p = join(home, ".claude-work", "settings.json");
+  rmSync(p);
+  symlinkSync(join(home, ".claude", "settings.json"), p);
+  assert.match(run("doctor").stdout, /through another link/);
+  run("doctor", "--fix");
+  assert.ok(isLinkTo(p, join(shared, "settings.json")));
 });

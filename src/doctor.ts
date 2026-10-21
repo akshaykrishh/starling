@@ -1,4 +1,4 @@
-import { lstatSync, mkdirSync, readFileSync, readdirSync, readlinkSync, renameSync, rmdirSync, symlinkSync, unlinkSync } from "node:fs";
+import { lstatSync, mkdirSync, readFileSync, readdirSync, readlinkSync, realpathSync, renameSync, rmdirSync, symlinkSync, unlinkSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import type { Config } from "./config.js";
 import { expand } from "./paths.js";
@@ -11,11 +11,15 @@ import { expand } from "./paths.js";
  *             a symlink with a plain file. Same content means nothing was lost; relink it.
  * diverged    a real file or folder with different content: someone changed one profile only.
  *             Merge the change into the shared copy by hand, then run `starling doctor --fix`.
+ * chain       a symlink that reaches the shared copy through another symlink. Claude Code's
+ *             atomic save resolves only one hop, so a save replaces the middle link with a plain
+ *             file and the change never reaches the shared copy (anthropics/claude-code#78162).
+ *             Point it straight at the shared copy.
  * wrong-link  a symlink to somewhere other than the shared copy
  * memory-local  a profile's memory folder that the shared store has never seen; move it there
  * memory-empty  an empty real memory folder; replace it with the link
  */
-export type Status = "ok" | "missing" | "forked" | "diverged" | "wrong-link" | "memory-local" | "memory-empty";
+export type Status = "ok" | "missing" | "forked" | "diverged" | "chain" | "wrong-link" | "memory-local" | "memory-empty";
 
 export interface Finding {
   profile: string;
@@ -26,7 +30,7 @@ export interface Finding {
   status: Status;
 }
 
-const FIXABLE: ReadonlySet<Status> = new Set(["missing", "forked", "memory-local", "memory-empty"]);
+const FIXABLE: ReadonlySet<Status> = new Set(["missing", "forked", "chain", "memory-local", "memory-empty"]);
 export const isFixable = (f: Finding) => FIXABLE.has(f.status);
 
 function lstat(p: string) {
@@ -39,6 +43,14 @@ function lstat(p: string) {
 
 function linksTo(p: string, target: string): boolean {
   return resolve(dirname(p), readlinkSync(p)) === target;
+}
+
+function sameFile(a: string, b: string): boolean {
+  try {
+    return realpathSync(a) === realpathSync(b);
+  } catch {
+    return false;
+  }
 }
 
 function sameBytes(a: string, b: string): boolean {
@@ -54,7 +66,10 @@ function checkEntry(profile: string, path: string, target: string, memory: boole
   const tst = lstat(target);
   const f = (status: Status): Finding => ({ profile, path, target, status });
   if (!st) return tst ? f("missing") : undefined;
-  if (st.isSymbolicLink()) return f(linksTo(path, target) ? "ok" : "wrong-link");
+  if (st.isSymbolicLink()) {
+    if (linksTo(path, target)) return f("ok");
+    return f(tst && sameFile(path, target) ? "chain" : "wrong-link");
+  }
   if (memory && st.isDirectory()) {
     if (readdirSync(path).length === 0) return f("memory-empty");
     return tst ? f("diverged") : f("memory-local");
@@ -96,7 +111,7 @@ export function fix(findings: Finding[]): Finding[] {
       continue;
     }
     try {
-      if (f.status === "forked") unlinkSync(f.path);
+      if (f.status === "forked" || f.status === "chain") unlinkSync(f.path);
       if (f.status === "memory-empty") rmdirSync(f.path);
       if (f.status === "memory-local") {
         mkdirSync(dirname(f.target), { recursive: true });
@@ -118,6 +133,7 @@ export const HINT: Record<Status, string> = {
   missing: "not linked yet",
   forked: "a plain copy with identical content (an atomic save replaced the link)",
   diverged: "changed in this profile only; merge the change into the shared copy, then run `starling doctor --fix`",
+  chain: "reaches the shared copy through another link; Claude Code's save would cut the chain (claude-code#78162)",
   "wrong-link": "links somewhere other than the shared copy",
   "memory-local": "memory that only this profile has; --fix moves it into the shared store",
   "memory-empty": "an empty memory folder",

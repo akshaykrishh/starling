@@ -8,9 +8,11 @@ A starling murmuration is thousands of birds turning together without a collisio
 Claude Code at that kind of scale (several accounts, dozens of worktrees, ten projects)
 breaks in quiet ways:
 
-- **Your shared config forks without telling you.** If each account's `settings.json` is a
-  symlink to one shared file, Claude Code's atomic save (write a temp file, rename it over the
-  target) replaces the symlink with a plain copy. From then on that account drifts on its own.
+- **Your shared config forks without telling you.** Claude Code's atomic save (write a temp
+  file, rename it over the target) follows a symlink only one hop. If an account's
+  `settings.json` reaches the shared file through two links, the save replaces the middle link
+  with a plain copy, and from then on that account drifts on its own
+  ([anthropics/claude-code#78162](https://github.com/anthropics/claude-code/issues/78162)).
 - **`git stash` is shared by every worktree.** A stash made in one session can be popped by
   another, and work moves silently between branches.
 - **Memory silts up.** Every note becomes a new memory file, and only the first part of a long
