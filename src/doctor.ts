@@ -133,7 +133,7 @@ export const HINT: Record<Status, string> = {
   missing: "not linked yet",
   forked: "a plain copy with identical content (an atomic save replaced the link)",
   diverged: "changed in this profile only; merge the change into the shared copy, then run `starling doctor --fix`",
-  chain: "reaches the shared copy through another link; Claude Code's save would cut the chain (claude-code#78162)",
+  chain: "reaches the shared copy through another link; a save would cut the chain (claude-code#78162)",
   "wrong-link": "links somewhere other than the shared copy",
   "memory-local": "memory that only this profile has; --fix moves it into the shared store",
   "memory-empty": "an empty memory folder",

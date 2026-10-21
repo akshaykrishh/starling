@@ -124,6 +124,26 @@ test("gc removes merged clean worktrees, keeps dirty ones, trashes stale scratch
   assert.ok(readdirSync(join(trash, readdirSync(trash)[0])).includes("old-task"));
 });
 
+test("gc keeps a merged worktree that a live session is working in", () => {
+  const { home, run } = sandbox();
+  const repo = join(home, "repo");
+  const g = (...a) => execFileSync("git", ["-C", repo, ...a], { stdio: "pipe" });
+  mkdirSync(repo);
+  g("init", "-q", "-b", "main");
+  g("-c", "user.email=t@t", "-c", "user.name=t", "commit", "-q", "--allow-empty", "-m", "init");
+  g("worktree", "add", "-q", join(home, "wt-busy"), "-b", "busy");
+  run("init");
+  const cfgPath = join(home, ".starling", "config.json");
+  const cfg = JSON.parse(execFileSync("cat", [cfgPath], { encoding: "utf8" }));
+  writeFileSync(cfgPath, JSON.stringify({ ...cfg, repos: [repo] }));
+  // A session in a subfolder of the worktree, owned by this (live) test process.
+  const input = JSON.stringify({ session_id: "s1", cwd: join(home, "wt-busy"), hook_event_name: "UserPromptSubmit" });
+  spawnSync("node", [CLI, "hook", "UserPromptSubmit"], { input, env: { ...process.env, HOME: home, CLAUDE_PID: String(process.pid) } });
+  assert.match(run("gc").stdout, /keep    worktree .*wt-busy: already in main, but a session is open in it/);
+  run("gc", "--apply");
+  assert.ok(existsSync(join(home, "wt-busy")));
+});
+
 test("hygiene reports one line", () => {
   const { run } = sandbox();
   run("init");

@@ -1,7 +1,7 @@
 // memory lint: a throwaway HOME with one shared memory store and a transcript naming the project folder.
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
-import { mkdirSync, mkdtempSync, writeFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, realpathSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { test } from "node:test";
@@ -11,8 +11,8 @@ const CLI = fileURLToPath(new URL("../dist/cli.js", import.meta.url));
 
 const mem = (name, description, body = "") => `---\nname: ${name}\ndescription: ${description}\nmetadata:\n  type: project\n---\n\n${body}\n`;
 
-function sandbox(memories, index) {
-  const home = mkdtempSync(join(tmpdir(), "starling-mem-"));
+function sandbox(memories, index, prefix = "starling-mem-") {
+  const home = realpathSync(mkdtempSync(join(tmpdir(), prefix)));
   const repo = join(home, "repo");
   mkdirSync(join(repo, "src"), { recursive: true });
   writeFileSync(join(repo, "src", "kept.ts"), "");
@@ -28,6 +28,11 @@ function sandbox(memories, index) {
   run("init");
   return run;
 }
+
+test("stores are named after the project, even when the home folder has a dot in it", () => {
+  const run = sandbox({ "a.md": "no header\n" }, "- [a](a.md)\n", "starling.mem-");
+  assert.match(run("memory", "lint").stdout, /^repo \(1 files/m);
+});
 
 test("a clean store passes", () => {
   const run = sandbox({ "build.md": mem("build", "How the build runs", "See `src/kept.ts`.") });

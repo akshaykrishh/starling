@@ -1,10 +1,11 @@
-import { cpSync, existsSync, mkdirSync, readFileSync, readdirSync, renameSync, rmSync, statSync } from "node:fs";
+import { cpSync, existsSync, mkdirSync, readFileSync, readdirSync, realpathSync, renameSync, rmSync, statSync } from "node:fs";
 import { homedir } from "node:os";
 import { basename, join } from "node:path";
 import type { Config } from "./config.js";
 import { check } from "./doctor.js";
 import * as git from "./git.js";
 import { expand } from "./paths.js";
+import { listSessions } from "./sessions.js";
 
 const DAY = 86_400_000;
 
@@ -21,6 +22,14 @@ function files(p: string, ext = ""): string[] {
     return readdirSync(p, { withFileTypes: true }).filter((d) => d.isFile() && d.name.endsWith(ext)).map((d) => join(p, d.name));
   } catch {
     return [];
+  }
+}
+
+function realpath(p: string): string {
+  try {
+    return realpathSync(p);
+  } catch {
+    return p;
   }
 }
 
@@ -46,12 +55,19 @@ export interface WorktreeVerdict {
 /**
  * A worktree can go when it is clean and its work has landed: its commit is on the default
  * branch, or its branch's upstream was deleted (a squash-merged PR). Anything dirty or
- * unmerged stays, however old. `git status` is by far the slowest check on a large repo, so
- * it only runs on worktrees that have already passed the merge checks.
+ * unmerged stays, however old, and so does one a live session is working in. `git status` is
+ * by far the slowest check on a large repo, so it only runs on worktrees that have already
+ * passed the merge checks.
  */
 export function judgeWorktrees(cfg: Config): { verdicts: WorktreeVerdict[]; total: number } {
   const verdicts: WorktreeVerdict[] = [];
   let total = 0;
+  let open: string[] | undefined;
+  const inUse = (path: string) => {
+    open ??= listSessions(cfg).filter((s) => s.state !== "ended" && s.cwd).map((s) => realpath(s.cwd!));
+    const p = realpath(path);
+    return open.some((cwd) => cwd === p || cwd.startsWith(p + "/"));
+  };
   for (const raw of cfg.repos) {
     const repo = expand(raw);
     const base = git.defaultBranch(repo);
@@ -71,8 +87,9 @@ export function judgeWorktrees(cfg: Config): { verdicts: WorktreeVerdict[]; tota
             ? `already in ${base}`
             : undefined;
       if (merged) {
-        const dirty = git.isDirty(wt.path);
-        v(!dirty, dirty ? `${merged}, but has uncommitted changes` : merged);
+        if (git.isDirty(wt.path)) v(false, `${merged}, but has uncommitted changes`);
+        else if (inUse(wt.path)) v(false, `${merged}, but a session is open in it`);
+        else v(true, merged);
       }
       else if (Date.now() - git.lastCommitAt(wt.path) > cfg.staleDays * DAY) v(false, `unmerged, no commits for ${cfg.staleDays}+ days`);
     }
@@ -100,9 +117,9 @@ export function moveToTrash(p: string, trash: string): string {
   return dest;
 }
 
-/** Claude names a project's store after its path with / turned into -; drop the home part. */
+/** Claude names a project's store after its path with every non-alphanumeric turned into -; drop the home part. */
 export function projectName(key: string): string {
-  const prefix = homedir().replace(/\//g, "-") + "-";
+  const prefix = homedir().replace(/[^a-zA-Z0-9]/g, "-") + "-";
   return key.startsWith(prefix) ? key.slice(prefix.length) : key;
 }
 

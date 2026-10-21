@@ -4,7 +4,9 @@
 
 **Keep many Claude Code sessions, accounts and worktrees moving as one flock.**
 
-<!-- TODO: 30-second GIF of `starling hygiene` → `starling gc` → `starling doctor --fix` on a demo repo -->
+![starling ls, doctor, gc and memory lint on a demo setup](demo/starling.gif)
+
+<sub>Made-up accounts and repos; rebuild it with `vhs demo/demo.tape`.</sub>
 
 A starling murmuration is thousands of birds turning together without a collision. Running
 Claude Code at that kind of scale (several accounts, dozens of worktrees, ten projects)
