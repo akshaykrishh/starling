@@ -1,0 +1,12 @@
+{
+  "name": "starling",
+  "version": "0.1.0",
+  "description": "Run many Claude Code sessions in parallel worktrees safely: blocks git stash (shared across worktrees), destructive git and polling loops, and repairs shared config across accounts at session start.",
+  "author": {
+    "name": "Akshay Krishna"
+  },
+  "homepage": "https://github.com/akshaykrishh/starling",
+  "repository": "https://github.com/akshaykrishh/starling",
+  "license": "MIT",
+  "keywords": ["worktrees", "parallel-agents", "git", "multi-account", "hooks"]
+}

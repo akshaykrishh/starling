@@ -1,0 +1,45 @@
+{
+  "name": "@akshaykrishh/starling",
+  "version": "0.1.0",
+  "description": "Keep many Claude Code sessions, accounts and worktrees moving as one flock: shared config that stays shared, memory that stays small, and a yard that cleans itself.",
+  "type": "module",
+  "bin": {
+    "starling": "dist/cli.js"
+  },
+  "files": [
+    "dist",
+    "hooks",
+    "README.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "build": "tsc",
+    "test": "tsc && node --test test/*.test.mjs",
+    "test:hooks": "bash hooks/test-guard.sh",
+    "prepublishOnly": "npm test && npm run test:hooks"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "keywords": [
+    "claude-code",
+    "claude",
+    "agents",
+    "worktrees",
+    "cli",
+    "plugin"
+  ],
+  "author": "Akshay Krishna",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/akshaykrishh/starling.git"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.0",
+    "typescript": "^5.7.0"
+  },
+  "publishConfig": {
+    "access": "public"
+  }
+}
