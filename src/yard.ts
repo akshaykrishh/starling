@@ -101,7 +101,7 @@ export function moveToTrash(p: string, trash: string): string {
 }
 
 /** Claude names a project's store after its path with / turned into -; drop the home part. */
-function projectName(key: string): string {
+export function projectName(key: string): string {
   const prefix = homedir().replace(/\//g, "-") + "-";
   return key.startsWith(prefix) ? key.slice(prefix.length) : key;
 }

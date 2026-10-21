@@ -84,6 +84,24 @@ $ starling hygiene
 links: ok across 4 profiles · memory! 2/11 stores over limit (app=77f/77l) · worktrees! 74 (2 merged and removable, 20 stale unmerged) · scratch! 27 folders untouched 7+ days · handoffs: 6 (0 older than 7d)
 ```
 
+### Keep memory worth loading
+
+Claude Code loads only the start of a project's `MEMORY.md`, so memory that grows without
+pruning quietly stops working. `starling memory lint [project]` reports, without changing
+anything:
+
+```
+my-app (59 files, 59 index lines)
+  over-limit 59 files (limit 30)
+  status     review-queue-state.md: "state" in the name: work in progress belongs in an issue, PR or handoff
+  stale-path dev-setup.md: names scripts/demo.sh, which no longer exists
+  overlap    auth-plan.md: may cover the same ground as permissions-plan.md; merge them if so
+```
+
+It also reports memories missing from the index (they never load), index entries whose file
+is gone, and files without the `name`/`description` header. Paths are checked against the
+project folder recorded in the project's own transcripts.
+
 ### What it never does
 
 - **Overwrite a change.** A profile file that differs from the shared copy is reported, not replaced.
@@ -128,7 +146,6 @@ limits, and won't.
 
 ## Roadmap
 
-- memory lint: duplicates, and memories naming files or flags that no longer exist
 - an inbox: queue a task for any stream from anywhere (from [magpie](https://github.com/akshaykrishh/magpie))
 
 ## Development
@@ -139,6 +156,9 @@ npm run test:hooks        # guard regression cases
 ```
 
 Releases: bump `version` in `package.json` and `.claude-plugin/plugin.json`, commit, then
-`git tag v<version> && git push --tags`. GitHub Actions publishes to npm with provenance.
+`git tag v<version> && git push --tags`. The release workflow is meant to publish to npm with
+provenance, but npm currently rejects trusted publishing from repos created after July 2026
+([npm/cli#9969](https://github.com/npm/cli/issues/9969)). Until that is fixed, publish by hand
+with `npm publish` from an interactive terminal (passkey approval).
 
 MIT licensed.

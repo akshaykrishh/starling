@@ -7,6 +7,7 @@ import { accountEmail, configPath, DEFAULT_LINKS, detectProfiles, loadConfig, sa
 import { check, fix, HINT, isFixable, type Finding } from "./doctor.js";
 import * as git from "./git.js";
 import { expand, tilde } from "./paths.js";
+import { lintStore, memoryStores } from "./memory.js";
 import { ago, listSessions, record, staleSessionRecords, type HookInput, type Session } from "./sessions.js";
 import { attach, getStream, handoffFile, listStreams, saveStream, streamFor, validName, writeHandoff, type Stream } from "./streams.js";
 import { hygiene, judgeWorktrees, moveToTrash, staleScratch, trashDir } from "./yard.js";
@@ -28,6 +29,7 @@ const HELP = `starling: keep many Claude Code sessions, accounts and worktrees m
   starling close <stream>               close it; the handoff goes to ~/.starling/trash
 
   starling doctor [--fix]               check every profile still points at the shared config
+  starling memory lint [project]        memory that never loads, records status, names missing files or repeats itself
   starling hygiene                      one-line health report (links, memory, worktrees, scratch, handoffs)
   starling gc [--apply]                 merged worktrees, stale scratch and old session records
   starling hook <event>                 called by the plugin's hooks; reads the hook's JSON on stdin
@@ -241,6 +243,27 @@ function doctor(cfg: Config, args: string[]): number {
   return 1;
 }
 
+function memory(cfg: Config, args: string[]): number {
+  if (args[0] !== "lint") throw new Error("Usage: starling memory lint [project]");
+  const only = args[1];
+  let total = 0;
+  for (const dir of memoryStores(cfg)) {
+    const r = lintStore(cfg, dir);
+    if (!r.files || (only && !r.project.includes(only))) continue;
+    total += r.issues.length;
+    if (!r.issues.length) continue;
+    console.log(`${r.project} (${r.files} files, ${r.indexLines} index lines)`);
+    for (const i of r.issues) console.log(`  ${i.kind.padEnd(10)} ${i.file ? i.file + ": " : ""}${i.detail}`);
+    console.log("");
+  }
+  if (!total) {
+    console.log("Memory is clean.");
+    return 0;
+  }
+  console.log(`${total} issue(s). Nothing was changed; edit or delete the files, then run this again.`);
+  return 1;
+}
+
 function gc(cfg: Config, args: string[]): void {
   const apply = args.includes("--apply");
   const { verdicts } = judgeWorktrees(cfg);
@@ -320,6 +343,8 @@ function main(argv: string[]): number {
       return close(cfg, args), 0;
     case "doctor":
       return doctor(cfg, args);
+    case "memory":
+      return memory(cfg, args);
     case "hygiene":
       return console.log(hygiene(cfg)), 0;
     case "gc":
