@@ -5,7 +5,47 @@
         "hooks": [
           {
             "type": "command",
-            "command": "command -v starling >/dev/null 2>&1 && starling hook session-start || true"
+            "command": "command -v starling >/dev/null 2>&1 && starling hook SessionStart || true"
+          }
+        ]
+      }
+    ],
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "command -v starling >/dev/null 2>&1 && starling hook UserPromptSubmit || true"
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "command -v starling >/dev/null 2>&1 && starling hook Stop || true"
+          }
+        ]
+      }
+    ],
+    "Notification": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "command -v starling >/dev/null 2>&1 && starling hook Notification || true"
+          }
+        ]
+      }
+    ],
+    "SessionEnd": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "command -v starling >/dev/null 2>&1 && starling hook SessionEnd || true"
           }
         ]
       }

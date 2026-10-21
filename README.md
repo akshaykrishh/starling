@@ -18,6 +18,9 @@ breaks in quiet ways:
 - **The yard fills with leftovers.** Merged worktrees, scratch folders, handoff files and
   polling loops from sessions that ended hours ago.
 
+- **You lose track.** Which of twelve sessions is waiting on you? Which account was the
+  billing fix on, and where did it stop when the usage limit hit?
+
 starling is a small CLI and a Claude Code plugin that keeps all of this in shape.
 
 ## Install
@@ -39,6 +42,39 @@ starling hygiene              # one line: links · memory · worktrees · scratc
 starling gc                   # dry run; --apply removes merged worktrees and trashes stale scratch
 ```
 
+### See every session at once
+
+```
+$ starling ls
+STATE    FOR  PROFILE   FOLDER     BRANCH         STREAM  TITLE
+WAITING  4m   work      app-retry  feat/retry     retry   Retry failed webhooks with backoff
+WAITING  1m   client    portal     main                   Fix invoice PDF fonts
+working  now  work      app        fix/gst-round          GST rounding on credit notes
+idle     27m  personal  blog       main                   Draft post on worktree guards
+
+2 waiting on you.
+```
+
+Every session on every profile, the ones waiting on you first. With the plugin installed,
+hooks record when a turn ends or Claude asks for permission, and a session whose process
+died shows as ended. Without them, starling still finds sessions from their transcripts.
+
+### Streams: work that outlives a session
+
+A stream is one piece of work: a folder, a handoff and every session (on any profile)
+that worked on it.
+
+```sh
+starling handoff retry                   # in the work's folder; the starling:handoff skill writes the notes
+starling resume retry --profile client   # a fresh session, any account, handoff loaded at start
+starling streams                         # what is open
+starling close retry                     # done; the handoff goes to the trash
+```
+
+The handoff has two parts: **Notes** that the session writes (goal, done, next, decisions,
+traps) and a **State** section starling regenerates from git each time (branch, commits
+ahead, uncommitted files, the PR), so the next session never starts from a stale summary.
+
 ```
 $ starling hygiene
 links: ok across 4 profiles · memory! 2/11 stores over limit (app=77f/77l) · worktrees! 74 (2 merged and removable, 20 stale unmerged) · scratch! 27 folders untouched 7+ days · handoffs: 6 (0 older than 7d)
@@ -56,7 +92,8 @@ links: ok across 4 profiles · memory! 2/11 stores over limit (app=77f/77l) · w
 
 | Hook | What it does |
 |---|---|
-| `SessionStart` | Runs `starling hook session-start`: relinks config an atomic save replaced (same content), moves memory only one profile has into the shared store, and tells the session about anything that really diverged. Silent when healthy. |
+| `SessionStart` | Relinks config an atomic save replaced (same content), moves memory only one profile has into the shared store, and tells the session about anything that really diverged, and loads the stream's handoff for `starling resume`. Silent when healthy. |
+| `UserPromptSubmit`, `Stop`, `Notification`, `SessionEnd` | Record each session's state for `starling ls` (working, waiting on you, ended). |
 | `PreToolUse: Bash` | Blocks `git stash` (except `list`/`show`), force-push, `reset --hard`, `clean -f`, `branch -D`, `checkout .`, `restore .`, and polling loops (`until/while … sleep`, `watch -n`). Set `STARLING_ALLOW_POLLING=1` to allow loops. |
 
 The guard needs `jq` (preinstalled on recent macOS); without it, it lets everything through.
@@ -87,8 +124,6 @@ limits, and won't.
 
 ## Roadmap
 
-- `starling ls`: every live session across profiles: project, worktree, profile, and whether it is **waiting on you**
-- streams: `starling handoff` / `starling resume <stream>`, so a piece of work survives a session, an account switch or a worktree
 - memory lint: duplicates, and memories naming files or flags that no longer exist
 - an inbox: queue a task for any stream from anywhere (from [magpie](https://github.com/akshaykrishh/magpie))
 
