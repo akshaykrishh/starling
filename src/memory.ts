@@ -32,8 +32,8 @@ export interface StoreReport {
   issues: Issue[];
 }
 
-/** "state" counts only as the last word, so "empty-state-ui" is not flagged. */
-const STATUS_WORDS = new Set(["status", "pending", "progress", "todo", "wip", "handoff", "next", "blocked"]);
+/** Only as the last word: "release-pending" records status, "empty-state-ui" and "no-status-guard" are topics. */
+const STATUS_WORDS = new Set(["state", "status", "pending", "progress", "todo", "wip", "handoff", "next", "blocked"]);
 
 interface Memory {
   file: string;
@@ -130,7 +130,8 @@ export function lintStore(cfg: Config, dir: string): StoreReport {
     if (!linked.has(m.file)) issues.push({ kind: "unindexed", file: m.file, detail: "not in MEMORY.md, so it never loads" });
     if (!m.name || !m.description) issues.push({ kind: "no-header", file: m.file, detail: "no name/description frontmatter" });
     const slug = (m.name ?? m.file.replace(/\.md$/, "")).toLowerCase().split(/[^a-z0-9]+/);
-    const hit = slug.find((w) => STATUS_WORDS.has(w)) ?? (slug.at(-1) === "state" ? "state" : undefined);
+    const last = slug.filter(Boolean).at(-1) ?? "";
+    const hit = STATUS_WORDS.has(last) ? last : undefined;
     if (hit) issues.push({ kind: "status", file: m.file, detail: `"${hit}" in the name: work in progress belongs in an issue, PR or handoff` });
     for (const p of pathsIn(m.body, root)) {
       if (!existsSync(p)) issues.push({ kind: "stale-path", file: m.file, detail: `names ${root && !relative(root, p).startsWith("..") ? relative(root, p) : tilde(p)}, which no longer exists` });

@@ -52,16 +52,17 @@ test("unindexed, dangling and headerless memories are reported", () => {
   assert.match(out, /dangling   MEMORY\.md: lists c\.md/);
 });
 
-test("status-style names are flagged, an 'empty state' topic is not", () => {
+test("status-style names are flagged, topics that merely contain the word are not", () => {
   const run = sandbox({
     "corpus-state.md": mem("corpus-state", "where the corpus work stands"),
     "release-pending.md": mem("release-pending", "what the release waits on"),
     "empty-state-ui.md": mem("empty-state-ui", "what screens show before data exists"),
+    "no-status-guard.md": mem("no-status-guard", "accept must check the suggestion is still open"),
   });
   const out = run("memory", "lint").stdout;
   assert.match(out, /status     corpus-state\.md/);
   assert.match(out, /status     release-pending\.md/);
-  assert.doesNotMatch(out, /status     empty-state-ui/);
+  assert.doesNotMatch(out, /status     (empty-state-ui|no-status-guard)/);
 });
 
 test("near-duplicate memories and limits are reported", () => {
