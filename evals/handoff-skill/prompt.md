@@ -7,4 +7,4 @@ max_turns: 6
 allowed_tools: [Read, Glob, Grep, Skill]
 ---
 
-I'm out of usage on this account. Write the handoff for the billing-retry stream so another session can pick it up.
+I'm stopping for today. Write the handoff for the billing-retry stream so another session can pick it up tomorrow.

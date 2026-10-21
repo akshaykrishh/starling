@@ -1,6 +1,6 @@
 ---
 name: handoff
-description: Write or refresh the handoff for the current piece of work (a starling stream) so another session, on any account or after a usage limit, can continue it. Use when context or a usage limit is running low, before /clear, before switching accounts, when the user asks for a handoff or resume prompt, or when stopping work that is not finished.
+description: Write or refresh the handoff for the current piece of work (a starling stream) so another session can continue it, now or later. Use when context is running low, before /clear, when stopping for the day or handing work to another session, when the user asks for a handoff or resume prompt, or when stopping work that is not finished.
 ---
 
 # Hand off a stream

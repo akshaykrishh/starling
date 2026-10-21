@@ -25,7 +25,7 @@ breaks in quiet ways:
   polling loops from sessions that ended hours ago.
 
 - **You lose track.** Which of twelve sessions is waiting on you? Which account was the
-  billing fix on, and where did it stop when the usage limit hit?
+  billing fix on, and where did yesterday's session stop?
 
 starling is a small CLI and a Claude Code plugin that keeps all of this in shape.
 
@@ -36,6 +36,9 @@ npm install -g @akshaykrishh/starling   # the CLI
 claude plugin marketplace add akshaykrishh/claude-plugins
 claude plugin install starling@akshaykrishh   # the hooks
 ```
+
+Only want the handoff skill? `npx skills add akshaykrishh/starling` installs that alone (no
+CLI, no hooks).
 
 ## Use
 
@@ -143,8 +146,13 @@ The guard needs `jq` (preinstalled on recent macOS); without it, it lets everyth
 ## On multiple accounts
 
 Profiles are for keeping accounts you legitimately hold separate (work, a client's org,
-personal) while sharing one setup. starling does not rotate accounts to get around usage
-limits, and won't.
+personal) while sharing one setup. Each profile signs in through Claude Code's own login, and
+each account should be used as its own plan and organisation allow. starling shares
+configuration only. It never touches sign-in tokens: the only account detail it reads is each
+profile's email address, to label it. It does not rotate accounts to get around usage limits,
+and won't.
+
+starling is an independent project, not made or endorsed by Anthropic.
 
 ## Roadmap
 
