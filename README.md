@@ -4,7 +4,7 @@
 
 **Keep many Claude Code sessions, accounts and worktrees moving as one flock.**
 
-![starling ls, doctor, gc and memory lint on a demo setup](demo/starling.gif)
+![starling ls, doctor, gc and memory lint on a demo setup](https://raw.githubusercontent.com/akshaykrishh/starling/main/demo/starling.gif)
 
 <sub>Made-up accounts and repos; rebuild it with `vhs demo/demo.tape`.</sub>
 
