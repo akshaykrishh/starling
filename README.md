@@ -153,7 +153,11 @@ limits, and won't.
 ```sh
 npm install && npm test   # builds, then runs the end-to-end tests in a throwaway HOME
 npm run test:hooks        # guard regression cases
+claude plugin eval . --ablation none --allow-tools Bash   # the plugin with a real model (about $0.30)
 ```
+
+The evals check that the guard stops `git stash`, lets ordinary git through, and that asking
+for a handoff uses the handoff skill.
 
 Releases: bump `version` in `package.json` and `.claude-plugin/plugin.json`, commit, then
 `git tag v<version> && git push --tags`. The release workflow is meant to publish to npm with
